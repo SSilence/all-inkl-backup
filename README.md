@@ -14,15 +14,21 @@ Usage
 -----
 
 Fill in your SSH Username, Password and Host:<br />
+<pre>
 $sshUser = 'youruser';
 $sshPassword = 'yourpass';
 $sshHost = 'yourhost';
+</pre>
 
 Set your base directory:<br />
+<pre>
 $base = "/www/htdocs/<your-all-inkl-ftp-username>/";
+</pre>
 
 Set your backup script Subdirectory, e.g. for /www/htdocs/ftpuser/backup/ use following option:<br />
+<pre>
 $backupDir = "backup/";
+</pre>
  
 Configure your projects for backup. You can specify your database and/or an directory:
 <pre>
