@@ -13,18 +13,19 @@ IMPORTANT: You can only use this script for the premium package with SSH support
 Usage
 -----
 
-Fill in your SSH Username, Password and Host:
+Fill in your SSH Username, Password and Host:<br />
 $sshUser = 'youruser';
 $sshPassword = 'yourpass';
 $sshHost = 'yourhost';
 
-Set your base directory:
+Set your base directory:<br />
 $base = "/www/htdocs/<your-all-inkl-ftp-username>/";
 
-Set your backup script Subdirectory, e.g. for /www/htdocs/ftpuser/backup/ use following option:
+Set your backup script Subdirectory, e.g. for /www/htdocs/ftpuser/backup/ use following option:<br />
 $backupDir = "backup/";
  
 Configure your projects for backup. You can specify your database and/or an directory:
+<pre>
 $dbs = array(
     array(
         "name"   => "wordpress",
@@ -48,3 +49,4 @@ $dbs = array(
         "passwd" => "secret",
     )
 );
+</pre>
