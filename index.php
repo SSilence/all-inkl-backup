@@ -1,5 +1,9 @@
 <?PHP
 
+require __DIR__ . '/vendor/autoload.php';
+
+use phpseclib3\Net\SSH2;
+
 $sshUser = 'youruser';
 $sshPassword = 'yourpass';
 $sshHost = 'yourhost';
@@ -32,16 +36,14 @@ $dbs = array(
 
 
 // ssh connection
-include('Net/SSH2.php');
-
-$ssh = new Net_SSH2($sshHost);
-if(!$ssh->login($sshUser, $sshPassword))
-    die('ssh login failed');
-
+$ssh = new SSH2($sshHost, 22);
+if(!$ssh->login($sshUser, $sshPassword)) {
+	die($ssh->isConnected() ? 'bad username or password' : 'unable to establish connection');
+}
 
 $baseWithoutTrailingSlash = substr($base, 1);
-$str = "";
 foreach($dbs as $db) {
+    $str = "";
     echo $db["name"] . "<br />";
 
     // directory for backup
@@ -63,14 +65,12 @@ foreach($dbs as $db) {
     // generate tar.gz file
     $tar_file = $base . $backupDir . date('Y.m.d') . "_" . $db["name"] . ".tar.gz";
     $str = $str . "tar cfz " . $tar_file . " -C / " . $dir . " " . $sql . "\n";
-    if(strlen(trim($result))>0)
-        echo $result . "<br />\n";
     
     // delete temporarily database dump
     if(strlen($sql)>0 && strlen(trim($base))>4 && strlen(trim($sql_file))>4)
         $str = $str . "rm " . $base . $backupDir . $sql_file . "\n";
-}
 
-$ssh->exec($str);
+    $ssh->exec($str);
+}
 
 echo "finished";
