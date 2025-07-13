@@ -41,7 +41,11 @@ $toBackup = array(
         "name"   => "wordpress",
         "dbname" => "d1234567",
         "passwd" => "secret",
-        "dir"    => "wordpress"
+        "dir"    => "wordpress",
+        "exclude" => array(
+            "*.zip",
+            "wp-content/cache"
+        )
     ),
     array(
         "name"   => "website",
@@ -62,3 +66,5 @@ $toBackup = array(
 </pre>
 
 Optional you can upload the backup files on Amazon AWS S3. Set $awsDeleteZipFileOnFtp = true if you want the backup only on S2 and not on your ftp. Set false if you want it both: on your S3 and ftp.
+
+Set ``$deleteLastNBackups`` to a number for automatically deleting older backups.

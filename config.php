@@ -14,12 +14,18 @@ $awsSecret = "";
 $awsBucket = "";
 $awsDeleteZipFileOnFtp = true; // delete tar files in ftp dir or not
 
+$deleteLastNBackups = false;
+
 $toBackup = array(
     array(
         "name"   => "wordpress",
         "dbname" => "d1234567",
         "passwd" => "secret",
-        "dir"    => "wordpress"
+        "dir"    => "wordpress",
+        "exclude" => array(
+            "*.zip",
+            "wp-content/cache"
+        )
     ),
     array(
         "name"   => "website",
