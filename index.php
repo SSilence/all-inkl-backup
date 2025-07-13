@@ -16,8 +16,8 @@ use Aws\Exception\MultipartUploadException;
 use Aws\S3\MultipartUploader;
 use Aws\S3\ObjectUploader;
 
-function logging($msg) {
-    echo date("Y-m-d H:i:s") . " " . $msg . "<br />";
+function logging($msg, $newLine = true) {
+    echo date("Y-m-d H:i:s") . " " . $msg . ($newLine ? "<br />" : "");
     flush();
 }
 
@@ -69,7 +69,7 @@ foreach($toBackup as $backup) {
     if (!empty($backup['exclude']) && is_array($backup['exclude'])) {
         $exclude = '-x ' . implode(' ', array_map(fn($ex) => "'$ex'", $backup['exclude']));
     }
-    $command = $command . "zip -r -q -P $zipPassword $zipFile $toBackupPath $sqlFile $exclude && echo \"finished\" \n";
+    $command = $command . "zip -r -P $zipPassword $zipFile $toBackupPath $sqlFile $exclude && echo \"finished\" \n";
     
     // delete temporarily database dump
     if(isNotBlank($sqlFile) && strlen(trim($sqlFile))>4) {
@@ -77,7 +77,17 @@ foreach($toBackup as $backup) {
     }
 
     // ssh execute backup
-    $sshResult = $ssh->exec($command);
+    global $zipCounter, $zipLoggedDots;
+    $zipCounter = 0;
+    logging("{$backup["name"]} zipping ", false);
+    $sshResult = $ssh->exec($command, function($output) {
+        global $zipCounter, $zipLoggedDots;
+        if (($zipCounter++)%1000 == 0) {
+            echo(".");
+            flush();
+        }
+    });
+    echo("<br />");
     if ($ssh->getExitStatus() != 0) {
         logging("{$backup["name"]} ssh exist status error $sshResult");
     }
@@ -87,17 +97,32 @@ foreach($toBackup as $backup) {
 
     // upload to s3
     if ($s3) {
-        logging("{$backup["name"]} upload to s3");
+        logging("{$backup["name"]} upload to s3 ", false);
         $key = basename($zipFile);
         $partSize = 100 * 1024 * 1024;
-        
         $source = fopen($zipFile, 'rb');
-        $uploader = new ObjectUploader($s3, $awsBucket, $key, $source);
-        $result = $uploader->upload();
+        $uploader = new ObjectUploader($s3, $awsBucket, $key, $source, 'private',
+            [
+                'part_size' => $partSize,
+                'before_upload' => function($command) {
+                    echo(".");
+                    flush();
+                }
+            ]
+        );
+        try {
+            $result = $uploader->upload();
+            echo("<br />");
+        } catch (MultipartUploadException $e) {
+            echo("<br />");
+            logging("{$backup["name"]} error uploading to s3: " . $e->getMessage());
+            fclose($source);
+            continue;
+        }
         fclose($source);
 
         if (!isset($result['ObjectURL'])) {
-            logging("error uploading to s3");
+            logging("{$backup["name"]} error uploading to s3");
         } else if ($awsDeleteZipFileOnFtp) {
             sleep(3);
             $ssh->exec("rm $zipFile");
