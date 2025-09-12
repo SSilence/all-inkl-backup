@@ -131,13 +131,13 @@ foreach($toBackup as $backup) {
     }
 
     // cleanup ftp
-    $hasDeleteLastNBackups = is_numeric($deleteLastNBackups) && $deleteLastNBackups > 0;
-    if ($hasDeleteLastNBackups) {
-        logging($backup["name"] . " keep only last $deleteLastNBackups backups on FTP");
+    $hasBackupRetentionCount = is_numeric($backupRetentionCount) && $backupRetentionCount > 0;
+    if ($hasBackupRetentionCount) {
+        logging($backup["name"] . " keep only last $backupRetentionCount backups on FTP");
         $fileList = $ssh->exec("ls -1t {$base}{$backupDir}*{$backup["name"]}.zip");
         $files = array_filter(explode("\n", trim($fileList)), fn($f) => $f !== '');
-        if (count($files) > $deleteLastNBackups) {
-            $toDelete = array_slice($files, $deleteLastNBackups);
+        if (count($files) > $backupRetentionCount) {
+            $toDelete = array_slice($files, $backupRetentionCount);
             foreach ($toDelete as $filePath) {
                 $ssh->exec("rm $filePath");
                 logging("{$backup["name"]} {basename($filePath)} deleted");
@@ -146,8 +146,8 @@ foreach($toBackup as $backup) {
     }
 
     // cleanup aws s3
-    if ($s3 && $hasDeleteLastNBackups) {
-        logging("{$backup["name"]} keep only last $deleteLastNBackups backups on AWS");
+    if ($s3 && $hasBackupRetentionCount) {
+        logging("{$backup["name"]} keep only last $backupRetentionCount backups on AWS");
         try {
             $objects = $s3->listObjectsV2([ 'Bucket' => $awsBucket, 'Prefix' => '' ]);
             $zips = [];
@@ -161,8 +161,8 @@ foreach($toBackup as $backup) {
                 }
             }
             usort($zips, fn($a, $b) => $b['LastModified'] <=> $a['LastModified']);
-            if (count($zips) > $deleteLastNBackups) {
-                $toDelete = array_slice($zips, $deleteLastNBackups);
+            if (count($zips) > $backupRetentionCount) {
+                $toDelete = array_slice($zips, $backupRetentionCount);
                 foreach ($toDelete as $obj) {
                     $s3->deleteObject([ 'Bucket' => $awsBucket, 'Key' => $obj['Key'] ]);
                     logging("{$backup["name"]} {$obj['Key']} deleted");

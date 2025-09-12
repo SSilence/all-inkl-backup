@@ -14,7 +14,7 @@ $awsSecret = "";
 $awsBucket = "";
 $awsDeleteZipFileOnFtp = true; // delete tar files in ftp dir or not
 
-$deleteLastNBackups = false;
+$backupRetentionCount = false;
 
 $toBackup = array(
     array(

@@ -3,7 +3,7 @@ All-Inkl Backup Script
 
 Copyright (c) 2025 Tobias Zeising, http://www.aditu.de
 Licensed under the MIT license
-Version 0.2
+Version 1.0
 
 This is a simple backup script for All-Inkl.com Webspace.
 
@@ -24,7 +24,7 @@ Set your base directory:<br />
 $base = "/www/htdocs/<your-all-inkl-ftp-username>/";
 </pre>
 
-Set your backup script Subdirectory, e.g. for /www/htdocs/ftpuser/backup/ use following option:<br />
+Set your backup script Subdirectory, e.g. for /www/htdocs/w123456/backup/ use following option:<br />
 <pre>
 $backupDir = "backup/";
 </pre>
@@ -65,6 +65,20 @@ $toBackup = array(
 );
 </pre>
 
-Optional you can upload the backup files on Amazon AWS S3. Set $awsDeleteZipFileOnFtp = true if you want the backup only on S2 and not on your ftp. Set false if you want it both: on your S3 and ftp.
+Optional you can upload the backup files on Amazon AWS S3. Set the parameters:
+<pre>
+$awsRegion = "eu-central-1";
+$awsKey = "AI8C0CA...";
+$awsSecret = "SALKdjlkajsdlaadsasdlkj";
+$awsBucket = "mybackupbucket";
+</pre>
 
-Set ``$deleteLastNBackups`` to a number for automatically deleting older backups.
+Set $awsDeleteZipFileOnFtp = true if you want the backup only on S3 and not on your ftp. Set false if you want it both: on your S3 and ftp.
+<pre>
+$awsDeleteZipFileOnFtp = true;
+</pre>
+
+Set ``$backupRetentionCount`` to a number for automatically deleting older backups.
+<pre>
+$backupRetentionCount = 3; // only preserve the last 3 backups
+</pre>
