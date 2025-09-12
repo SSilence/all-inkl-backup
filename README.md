@@ -21,10 +21,10 @@ $sshHost = 'yourhost';
 
 Set your base directory:<br />
 <pre>
-$base = "/www/htdocs/<your-all-inkl-ftp-username>/";
+$base = "/www/htdocs/w00123456/";
 </pre>
 
-Set your backup script Subdirectory, e.g. for /www/htdocs/w123456/backup/ use following option:<br />
+Set your backup script Subdirectory, e.g. for /www/htdocs/w00123456/backup/ use following option:<br />
 <pre>
 $backupDir = "backup/";
 </pre>
@@ -73,7 +73,7 @@ $awsSecret = "SALKdjlkajsdlaadsasdlkj";
 $awsBucket = "mybackupbucket";
 </pre>
 
-Set $awsDeleteZipFileOnFtp = true if you want the backup only on S3 and not on your ftp. Set false if you want it both: on your S3 and ftp.
+Set ``$awsDeleteZipFileOnFtp = true`` if you want the backup only on S3 and not on your ftp. Set false if you want it both: on your S3 and ftp.
 <pre>
 $awsDeleteZipFileOnFtp = true;
 </pre>
