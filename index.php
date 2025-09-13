@@ -192,4 +192,25 @@ foreach($toBackup as $backup) {
     logging("{$backup["name"]} finished<br>");
 }
 
+// ensure backup directory has .htaccess file for security
+$htaccessPath = "{$base}{$backupDir}.htaccess";
+$htaccessContent = "# Backup Directory Security - Deny all web access\n";
+$htaccessContent .= "Order Deny,Allow\n";
+$htaccessContent .= "Deny from all\n";
+$htaccessContent .= "# Prevent directory browsing\n";
+$htaccessContent .= "Options -Indexes\n";
+$htaccessContent .= "# Prevent access to specific file types\n";
+$htaccessContent .= "<Files ~ \"\\.(zip|sql|log|txt)$\">\n";
+$htaccessContent .= "    Order Allow,Deny\n";
+$htaccessContent .= "    Deny from all\n";
+$htaccessContent .= "</Files>\n";
+
+$checkHtaccess = $ssh->exec("test -f $htaccessPath && echo 'exists' || echo 'missing'");
+if (trim($checkHtaccess) !== 'exists') {
+    $ssh->exec("cat > $htaccessPath << 'EOF'\n$htaccessContent\nEOF");
+    logging("Created .htaccess file in backup directory for security");
+} else {
+    logging("Backup directory .htaccess file already exists");
+}
+
 logging("finished backup");
