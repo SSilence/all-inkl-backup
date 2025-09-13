@@ -123,21 +123,18 @@ foreach($toBackup as $backup) {
 
         if (!isset($result['ObjectURL'])) {
             logging("{$backup["name"]} error uploading to s3");
-        } else if ($awsDeleteZipFileOnFtp) {
-            sleep(3);
-            $ssh->exec("rm $zipFile");
-        }
+        } 
         logging("{$backup["name"]} upload finished");
     }
 
     // cleanup ftp
-    $hasBackupRetentionCount = is_numeric($backupRetentionCount) && $backupRetentionCount > 0;
-    if ($hasBackupRetentionCount) {
-        logging($backup["name"] . " keep only last $backupRetentionCount backups on FTP");
+    $ftpBackupRetentionCount = is_numeric($ftpBackupRetentionCount) && $ftpBackupRetentionCount > 0;
+    if ($ftpBackupRetentionCount) {
+        logging($backup["name"] . " keep only last $ftpBackupRetentionCount backups on FTP");
         $fileList = $ssh->exec("ls -1t {$base}{$backupDir}*{$backup["name"]}.zip");
         $files = array_filter(explode("\n", trim($fileList)), fn($f) => $f !== '');
-        if (count($files) > $backupRetentionCount) {
-            $toDelete = array_slice($files, $backupRetentionCount);
+        if (count($files) > $ftpBackupRetentionCount) {
+            $toDelete = array_slice($files, $ftpBackupRetentionCount);
             foreach ($toDelete as $filePath) {
                 $ssh->exec("rm $filePath");
                 logging("{$backup["name"]} {basename($filePath)} deleted");
@@ -146,8 +143,9 @@ foreach($toBackup as $backup) {
     }
 
     // cleanup aws s3
-    if ($s3 && $hasBackupRetentionCount) {
-        logging("{$backup["name"]} keep only last $backupRetentionCount backups on AWS");
+    $awsBackupRetentionCount = is_numeric($awsBackupRetentionCount) && $awsBackupRetentionCount > 0;
+    if ($s3 && $awsBackupRetentionCount) {
+        logging("{$backup["name"]} keep only last $awsBackupRetentionCount backups on AWS");
         try {
             $objects = $s3->listObjectsV2([ 'Bucket' => $awsBucket, 'Prefix' => '' ]);
             $zips = [];
@@ -161,8 +159,8 @@ foreach($toBackup as $backup) {
                 }
             }
             usort($zips, fn($a, $b) => $b['LastModified'] <=> $a['LastModified']);
-            if (count($zips) > $backupRetentionCount) {
-                $toDelete = array_slice($zips, $backupRetentionCount);
+            if (count($zips) > $awsBackupRetentionCount) {
+                $toDelete = array_slice($zips, $awsBackupRetentionCount);
                 foreach ($toDelete as $obj) {
                     $s3->deleteObject([ 'Bucket' => $awsBucket, 'Key' => $obj['Key'] ]);
                     logging("{$backup["name"]} {$obj['Key']} deleted");

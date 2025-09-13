@@ -6,15 +6,14 @@ $sshHost = 'yourhost';
 $base = "/www/htdocs/<ftpuser>/";
 $backupDir = "backup/";
 $zipPassword = "secret";
+$ftpBackupRetentionCount = false;
 
 // set if you want to upload backups on Amazon AWS S3
 $awsRegion = ""; // e.g. eu-central-1
 $awsKey = "";
 $awsSecret = "";
 $awsBucket = "";
-$awsDeleteZipFileOnFtp = true; // delete tar files in ftp dir or not
-
-$backupRetentionCount = false;
+$awsBackupRetentionCount = false;
 
 $toBackup = array(
     array(

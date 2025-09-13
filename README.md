@@ -73,12 +73,12 @@ $awsSecret = "SALKdjlkajsdlaadsasdlkj";
 $awsBucket = "mybackupbucket";
 </pre>
 
-Set ``$awsDeleteZipFileOnFtp = true`` if you want the backup only on S3 and not on your ftp. Set false if you want it both: on your S3 and ftp.
+Set ``$ftpBackupRetentionCount`` to a number for automatically deleting older backups on ftp.
 <pre>
-$awsDeleteZipFileOnFtp = true;
+$ftpBackupRetentionCount = 3; // only preserve the last 3 backups on ftp
 </pre>
 
-Set ``$backupRetentionCount`` to a number for automatically deleting older backups.
+Set ``$awsBackupRetentionCount`` to a number for automatically deleting older backups on s3.
 <pre>
-$backupRetentionCount = 3; // only preserve the last 3 backups
+$awsBackupRetentionCount = 2; // only preserve the last 2 backups on S3
 </pre>
