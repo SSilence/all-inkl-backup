@@ -128,23 +128,41 @@ foreach($toBackup as $backup) {
     }
 
     // cleanup ftp
-    $ftpBackupRetentionCount = is_numeric($ftpBackupRetentionCount) && $ftpBackupRetentionCount > 0;
-    if ($ftpBackupRetentionCount) {
+    if (is_numeric($ftpBackupRetentionCount) && $ftpBackupRetentionCount > 0) {
         logging($backup["name"] . " keep only last $ftpBackupRetentionCount backups on FTP");
+        
+        // Get all backup files for this specific backup
         $fileList = $ssh->exec("ls -1t {$base}{$backupDir}*{$backup["name"]}.zip");
-        $files = array_filter(explode("\n", trim($fileList)), fn($f) => $f !== '');
-        if (count($files) > $ftpBackupRetentionCount) {
-            $toDelete = array_slice($files, $ftpBackupRetentionCount);
+        $backupFiles = array_filter(explode("\n", trim($fileList)), fn($f) => $f !== '');
+        
+        // Keep only the required number of backup files
+        if (count($backupFiles) > $ftpBackupRetentionCount) {
+            $toDelete = array_slice($backupFiles, $ftpBackupRetentionCount);
             foreach ($toDelete as $filePath) {
                 $ssh->exec("rm $filePath");
                 logging("{$backup["name"]} {basename($filePath)} deleted");
             }
         }
+        
+        // Delete all non-backup files from backup directory
+        logging("{$backup["name"]} cleaning up non-backup files from FTP");
+        $allFilesList = $ssh->exec("ls -1 {$base}{$backupDir}");
+        $allFiles = array_filter(explode("\n", trim($allFilesList)), fn($f) => $f !== '');
+        
+        foreach ($allFiles as $fileName) {
+            // Skip if it's a backup file (.zip file with date pattern)
+            if (preg_match('/^\d{4}\.\d{2}\.\d{2}_.*\.zip$/', $fileName)) {
+                continue;
+            }
+            
+            $fullPath = "{$base}{$backupDir}{$fileName}";
+            $ssh->exec("rm -rf $fullPath");
+            logging("{$backup["name"]} non-backup file/folder {$fileName} deleted");
+        }
     }
 
     // cleanup aws s3
-    $awsBackupRetentionCount = is_numeric($awsBackupRetentionCount) && $awsBackupRetentionCount > 0;
-    if ($s3 && $awsBackupRetentionCount) {
+    if ($s3 && is_numeric($awsBackupRetentionCount) && $awsBackupRetentionCount > 0) {
         logging("{$backup["name"]} keep only last $awsBackupRetentionCount backups on AWS");
         try {
             $objects = $s3->listObjectsV2([ 'Bucket' => $awsBucket, 'Prefix' => '' ]);
