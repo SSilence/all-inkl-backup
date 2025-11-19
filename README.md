@@ -12,6 +12,8 @@ IMPORTANT: You can only use this script for the premium package with SSH support
 Usage
 -----
 
+Run the backup with ``https://yoururl.com/backup/?run=true``.
+
 Configure in config.php. Fill in your SSH Username, Password and Host:<br />
 <pre>
 "sshUser" => 'youruser',
