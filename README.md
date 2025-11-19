@@ -1,8 +1,8 @@
 All-Inkl Backup Script
 ======================
 
-Copyright (c) 2025 Tobias Zeising, http://www.aditu.de
-Licensed under the MIT license
+Copyright (c) 2025 Tobias Zeising, http://www.aditu.de<br>
+Licensed under the MIT license<br>
 Version 1.1
 
 This is a simple backup script for All-Inkl.com Webspace.
