@@ -12,18 +12,25 @@ class MultiRegionClient implements AwsClientInterface
 
     /** @var AwsClientInterface[] A pool of clients keyed by region. */
     private $clientPool = [];
+
     /** @var callable */
     private $factory;
+
     /** @var PartitionInterface */
     private $partition;
+
     /** @var array */
     private $args;
+
     /** @var array */
     private $config;
+
     /** @var HandlerList */
     private $handlerList;
+
     /** @var array */
     private $aliases;
+
     /** @var callable */
     private $customHandler;
 
@@ -84,12 +91,13 @@ class MultiRegionClient implements AwsClientInterface
                                 . ' or "aws-us-gov").'
                             );
                         }
-                        $ruleset = EndpointDefinitionProvider::getEndpointRuleset(
-                            $args['service'],
-                            isset($args['version']) ? $args['version'] : 'latest'
-                        );
                         $partitions = EndpointDefinitionProvider::getPartitions();
-                        $args['endpoint_provider'] = new EndpointProviderV2($ruleset, $partitions);
+                        $parsed = EndpointDefinitionProvider::getParsedRuleset(
+                            $args['service'],
+                            isset($args['version']) ? $args['version'] : 'latest',
+                            $partitions
+                        );
+                        $args['endpoint_provider'] = new EndpointProviderV2($parsed, $partitions);
                     }
                 ],
             ];
@@ -224,6 +232,7 @@ class MultiRegionClient implements AwsClientInterface
      */
     protected function getClientFromPool($region = '')
     {
+        $region = $region ?? '';
         if (empty($this->clientPool[$region])) {
             $factory = $this->factory;
             $this->clientPool[$region] = $factory(

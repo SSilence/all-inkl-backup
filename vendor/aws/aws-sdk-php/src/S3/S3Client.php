@@ -16,7 +16,10 @@ use Aws\Identity\S3\S3ExpressIdentityProvider;
 use Aws\InputValidationMiddleware;
 use Aws\Middleware;
 use Aws\ResultInterface;
+use Aws\Retry\ConfigurationInterface as RetryConfigurationInterface;
 use Aws\Retry\QuotaManager;
+use Aws\Retry\V3\OptIn as NewRetriesOptIn;
+use Aws\Retry\V3\RetryMiddleware as RetryV3Middleware;
 use Aws\RetryMiddleware;
 use Aws\RetryMiddlewareV2;
 use Aws\S3\Parser\GetBucketLocationResultMutator;
@@ -41,6 +44,8 @@ use Psr\Http\Message\RequestInterface;
  * @method \GuzzleHttp\Promise\Promise copyObjectAsync(array $args = [])
  * @method \Aws\Result createBucket(array $args = [])
  * @method \GuzzleHttp\Promise\Promise createBucketAsync(array $args = [])
+ * @method \Aws\Result createBucketMetadataConfiguration(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise createBucketMetadataConfigurationAsync(array $args = [])
  * @method \Aws\Result createBucketMetadataTableConfiguration(array $args = [])
  * @method \GuzzleHttp\Promise\Promise createBucketMetadataTableConfigurationAsync(array $args = [])
  * @method \Aws\Result createMultipartUpload(array $args = [])
@@ -61,6 +66,8 @@ use Psr\Http\Message\RequestInterface;
  * @method \GuzzleHttp\Promise\Promise deleteBucketInventoryConfigurationAsync(array $args = [])
  * @method \Aws\Result deleteBucketLifecycle(array $args = [])
  * @method \GuzzleHttp\Promise\Promise deleteBucketLifecycleAsync(array $args = [])
+ * @method \Aws\Result deleteBucketMetadataConfiguration(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise deleteBucketMetadataConfigurationAsync(array $args = [])
  * @method \Aws\Result deleteBucketMetadataTableConfiguration(array $args = [])
  * @method \GuzzleHttp\Promise\Promise deleteBucketMetadataTableConfigurationAsync(array $args = [])
  * @method \Aws\Result deleteBucketMetricsConfiguration(array $args = [])
@@ -83,6 +90,8 @@ use Psr\Http\Message\RequestInterface;
  * @method \GuzzleHttp\Promise\Promise deleteObjectsAsync(array $args = [])
  * @method \Aws\Result deletePublicAccessBlock(array $args = [])
  * @method \GuzzleHttp\Promise\Promise deletePublicAccessBlockAsync(array $args = [])
+ * @method \Aws\Result getBucketAbac(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getBucketAbacAsync(array $args = [])
  * @method \Aws\Result getBucketAccelerateConfiguration(array $args = [])
  * @method \GuzzleHttp\Promise\Promise getBucketAccelerateConfigurationAsync(array $args = [])
  * @method \Aws\Result getBucketAcl(array $args = [])
@@ -105,6 +114,8 @@ use Psr\Http\Message\RequestInterface;
  * @method \GuzzleHttp\Promise\Promise getBucketLocationAsync(array $args = [])
  * @method \Aws\Result getBucketLogging(array $args = [])
  * @method \GuzzleHttp\Promise\Promise getBucketLoggingAsync(array $args = [])
+ * @method \Aws\Result getBucketMetadataConfiguration(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise getBucketMetadataConfigurationAsync(array $args = [])
  * @method \Aws\Result getBucketMetadataTableConfiguration(array $args = [])
  * @method \GuzzleHttp\Promise\Promise getBucketMetadataTableConfigurationAsync(array $args = [])
  * @method \Aws\Result getBucketMetricsConfiguration(array $args = [])
@@ -173,6 +184,8 @@ use Psr\Http\Message\RequestInterface;
  * @method \GuzzleHttp\Promise\Promise listObjectsV2Async(array $args = [])
  * @method \Aws\Result listParts(array $args = [])
  * @method \GuzzleHttp\Promise\Promise listPartsAsync(array $args = [])
+ * @method \Aws\Result putBucketAbac(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise putBucketAbacAsync(array $args = [])
  * @method \Aws\Result putBucketAccelerateConfiguration(array $args = [])
  * @method \GuzzleHttp\Promise\Promise putBucketAccelerateConfigurationAsync(array $args = [])
  * @method \Aws\Result putBucketAcl(array $args = [])
@@ -227,10 +240,18 @@ use Psr\Http\Message\RequestInterface;
  * @method \GuzzleHttp\Promise\Promise putObjectTaggingAsync(array $args = [])
  * @method \Aws\Result putPublicAccessBlock(array $args = [])
  * @method \GuzzleHttp\Promise\Promise putPublicAccessBlockAsync(array $args = [])
+ * @method \Aws\Result renameObject(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise renameObjectAsync(array $args = [])
  * @method \Aws\Result restoreObject(array $args = [])
  * @method \GuzzleHttp\Promise\Promise restoreObjectAsync(array $args = [])
  * @method \Aws\Result selectObjectContent(array $args = [])
  * @method \GuzzleHttp\Promise\Promise selectObjectContentAsync(array $args = [])
+ * @method \Aws\Result updateBucketMetadataInventoryTableConfiguration(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateBucketMetadataInventoryTableConfigurationAsync(array $args = [])
+ * @method \Aws\Result updateBucketMetadataJournalTableConfiguration(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateBucketMetadataJournalTableConfigurationAsync(array $args = [])
+ * @method \Aws\Result updateObjectEncryption(array $args = [])
+ * @method \GuzzleHttp\Promise\Promise updateObjectEncryptionAsync(array $args = [])
  * @method \Aws\Result uploadPart(array $args = [])
  * @method \GuzzleHttp\Promise\Promise uploadPartAsync(array $args = [])
  * @method \Aws\Result uploadPartCopy(array $args = [])
@@ -420,6 +441,7 @@ class S3Client extends AwsClient implements S3ClientInterface
         $this->addBuiltIns($args);
         parent::__construct($args);
         $stack = $this->getHandlerList();
+        $config = $this->getConfig();
         $stack->appendInit(SSECMiddleware::wrap($this->getEndpoint()->getScheme()), 's3.ssec');
         $stack->appendBuild(
             ApplyChecksumMiddleware::wrap($this->getApi(), $this->getConfig()),
@@ -431,7 +453,9 @@ class S3Client extends AwsClient implements S3ClientInterface
         );
 
         if ($this->getConfig('bucket_endpoint')) {
-            $stack->appendBuild(BucketEndpointMiddleware::wrap(), 's3.bucket_endpoint');
+            $stack->appendBuild(BucketEndpointMiddleware::wrap(
+                $this->isUseEndpointV2(), $args['endpoint'] ?? null), 's3.bucket_endpoint'
+            );
         } elseif (!$this->isUseEndpointV2()) {
             $stack->appendBuild(
                 S3EndpointMiddleware::wrap(
@@ -859,8 +883,8 @@ class S3Client extends AwsClient implements S3ClientInterface
      */
     private function getDisableExpressSessionAuthMiddleware()
     {
-        return function (callable $handler) {
-            return function (
+        return static function (callable $handler) {
+            return static function (
                 CommandInterface $command,
                 ?RequestInterface $request = null
             ) use ($handler) {
@@ -914,6 +938,10 @@ class S3Client extends AwsClient implements S3ClientInterface
                         $requestUri = str_replace('/{Bucket}', '/', $requestUri);
                     } else {
                         $requestUri = str_replace('/{Bucket}', '', $requestUri);
+                        // If we're left with just a query string, prepend '/'
+                        if (str_starts_with($requestUri, '?')) {
+                            $requestUri = '/' . $requestUri;
+                        }
                     }
                     $operation['http']['requestUri'] = $requestUri;
                 }
@@ -922,7 +950,7 @@ class S3Client extends AwsClient implements S3ClientInterface
 
         foreach ($definition['shapes'] as $key => &$value) {
             $suffix = 'Output';
-            if (substr($key, -strlen($suffix)) === $suffix) {
+            if (str_ends_with($key, $suffix)) {
                 if (isset($value['members']['Expires'])) {
                     $value['members']['Expires']['deprecated'] = true;
                     $value['members']['ExpiresString'] = [
@@ -997,89 +1025,134 @@ class S3Client extends AwsClient implements S3ClientInterface
     /** @internal */
     public static function _applyRetryConfig($value, $args, HandlerList $list)
     {
-        if ($value) {
-            $config = \Aws\Retry\ConfigurationProvider::unwrap($value);
-
-            if ($config->getMode() === 'legacy') {
-                $maxRetries = $config->getMaxAttempts() - 1;
-                $decider = RetryMiddleware::createDefaultDecider($maxRetries);
-                $decider = function ($retries, $command, $request, $result, $error) use ($decider, $maxRetries) {
-                    $maxRetries = $command['@retries'] ?? $maxRetries;
-
-                    if ($decider($retries, $command, $request, $result, $error)) {
-                        return true;
-                    }
-
-                    if ($error instanceof AwsException
-                        && $retries < $maxRetries
-                    ) {
-                        if ($error->getResponse()
-                            && $error->getResponse()->getStatusCode() >= 400
-                        ) {
-                            return strpos(
-                                    $error->getResponse()->getBody(),
-                                    'Your socket connection to the server'
-                                ) !== false;
-                        }
-
-                        if ($error->getPrevious() instanceof RequestException) {
-                            // All commands except CompleteMultipartUpload are
-                            // idempotent and may be retried without worry if a
-                            // networking error has occurred.
-                            return $command->getName() !== 'CompleteMultipartUpload';
-                        }
-                    }
-
-                    return false;
-                };
-
-                $delay = [RetryMiddleware::class, 'exponentialDelay'];
-                $list->appendSign(Middleware::retry($decider, $delay), 'retry');
-            } else {
-                $defaultDecider = RetryMiddlewareV2::createDefaultDecider(
-                    new QuotaManager(),
-                    $config->getMaxAttempts()
-                );
-
-                $list->appendSign(
-                    RetryMiddlewareV2::wrap(
-                        $config,
-                        [
-                            'collect_stats' => $args['stats']['retries'],
-                            'decider' => function(
-                                $attempts,
-                                CommandInterface $cmd,
-                                $result
-                            ) use ($defaultDecider, $config) {
-                                $isRetryable = $defaultDecider($attempts, $cmd, $result);
-                                if (!$isRetryable
-                                    && $result instanceof AwsException
-                                    && $attempts < $config->getMaxAttempts()
-                                ) {
-                                    if (!empty($result->getResponse())
-                                        && $result->getResponse()->getStatusCode() >= 400
-                                    ) {
-                                        return strpos(
-                                                $result->getResponse()->getBody(),
-                                                'Your socket connection to the server'
-                                            ) !== false;
-                                    }
-
-                                    if ($result->getPrevious() instanceof RequestException
-                                        && $cmd->getName() !== 'CompleteMultipartUpload'
-                                    ) {
-                                        $isRetryable = true;
-                                    }
-                                }
-
-                                return $isRetryable;
-                            }
-                        ]
-                    ),
-                    'retry'
-                );
-            }
+        if (!$value) {
+            return;
         }
+
+        $config = \Aws\Retry\ConfigurationProvider::unwrap($value);
+
+        if ($config->getMode() === 'legacy') {
+            self::appendLegacyModeRetries($config, $list);
+            return;
+        }
+
+        if (NewRetriesOptIn::isEnabled()) {
+            self::appendStandardModeRetriesNew($config, $args, $list);
+            return;
+        }
+
+        self::appendStandardModeRetries($config, $args, $list);
+    }
+
+    private static function appendLegacyModeRetries(
+        RetryConfigurationInterface $config,
+        HandlerList $list
+    ): void
+    {
+        $maxRetries = $config->getMaxAttempts() - 1;
+        $baseDecider = RetryMiddleware::createDefaultDecider($maxRetries);
+
+        $decider = function ($retries, $command, $request, $result, $error) use ($baseDecider, $maxRetries) {
+            $effectiveMax = $command['@retries'] ?? $maxRetries;
+
+            if ($baseDecider($retries, $command, $request, $result, $error)) {
+                return true;
+            }
+
+            if ($error instanceof AwsException && $retries < $effectiveMax) {
+                return self::isS3SocketIssue($error, $command->getName());
+            }
+
+            return false;
+        };
+
+        $list->appendSign(
+            Middleware::retry($decider, [RetryMiddleware::class, 'exponentialDelay']),
+            'retry'
+        );
+    }
+
+    private static function appendStandardModeRetries(
+        RetryConfigurationInterface $config,
+        $args,
+        HandlerList $list
+    ): void
+    {
+        // decider that combines V2's default decider with S3-specific checks.
+        $defaultDecider = RetryMiddlewareV2::createDefaultDecider(
+            new QuotaManager(),
+            $config->getMaxAttempts()
+        );
+
+        $list->appendSign(
+            RetryMiddlewareV2::wrap(
+                $config,
+                [
+                    'collect_stats' => $args['stats']['retries'],
+                    'decider' => function (
+                        $attempts,
+                        CommandInterface $cmd,
+                        $result
+                    ) use ($defaultDecider, $config) {
+                        if ($defaultDecider($attempts, $cmd, $result)) {
+                            return true;
+                        }
+                        if ($result instanceof AwsException
+                            && $attempts < $config->getMaxAttempts()
+                        ) {
+                            return self::isS3SocketIssue($result, $cmd->getName());
+                        }
+                        return false;
+                    },
+                ]
+            ),
+            'retry'
+        );
+    }
+
+    private static function appendStandardModeRetriesNew(
+        RetryConfigurationInterface $config,
+        $args,
+        HandlerList $list
+    ): void
+    {
+        // AWS_NEW_RETRIES_2026 path. The base middleware already handles
+        // the standard retryable shapes, so this decider only adds the
+        // S3-specific socket carve-out.
+        $list->appendSign(
+            RetryV3Middleware::wrap(
+                $config,
+                [
+                    'collect_stats' => $args['stats']['retries'],
+                    'service'       => $args['service'],
+                    'decider' => function (
+                        $attempts,
+                        CommandInterface $cmd,
+                        $result
+                    ) {
+                        return $result instanceof AwsException
+                            && self::isS3SocketIssue($result, $cmd->getName());
+                    },
+                ]
+            ),
+            'retry'
+        );
+    }
+
+    private static function isS3SocketIssue(AwsException $error, string $commandName): bool
+    {
+        $response = $error->getResponse();
+        if (!empty($response) && $response->getStatusCode() >= 400) {
+            return strpos(
+                (string) $response->getBody(),
+                'Your socket connection to the server'
+            ) !== false;
+        }
+
+        // All commands except CompleteMultipartUpload are idempotent and may
+        // be retried without worry if a networking error has occurred.
+        return $error->getPrevious() instanceof RequestException
+            && $commandName !== 'CompleteMultipartUpload';
     }
 
     /** @internal */
@@ -1117,7 +1190,7 @@ class S3Client extends AwsClient implements S3ClientInterface
 
         // Add a note on the CopyObject docs
          $s3ExceptionRetryMessage = "<p>Additional info on response behavior: if there is"
-            . " an internal error in S3 after the request was successfully recieved,"
+            . " an internal error in S3 after the request was successfully received,"
             . " a 200 response will be returned with an <code>S3Exception</code> embedded"
             . " in it; this will still be caught and retried by"
             . " <code>RetryMiddleware.</code></p>";

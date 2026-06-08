@@ -1,6 +1,6 @@
 {
     "require": {
-        "phpseclib/phpseclib": "~3.0",
-        "aws/aws-sdk-php": "^3.344"
+        "phpseclib/phpseclib": "~3.0.52",
+        "aws/aws-sdk-php": "^3.384.4"
     }
 }

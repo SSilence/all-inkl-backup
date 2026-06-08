@@ -155,6 +155,9 @@ class SignatureV4 implements SignatureInterface
                 $presignHeaders[] = $lName;
             }
         }
+
+        sort($presignHeaders);
+
         return $presignHeaders;
     }
 
@@ -346,12 +349,14 @@ class SignatureV4 implements SignatureInterface
         }
 
         $qs = '';
-        ksort($query);
+        uksort($query, static function (string $a, string $b): int {
+            return strcmp(rawurlencode($a), rawurlencode($b));
+        });
         foreach ($query as $k => $v) {
             if (!is_array($v)) {
                 $qs .= rawurlencode($k) . '=' . rawurlencode($v !== null ? $v : '') . '&';
             } else {
-                sort($v);
+                sort($v, SORT_STRING);
                 foreach ($v as $value) {
                     $qs .= rawurlencode($k) . '=' . rawurlencode($value !== null ? $value : '') . '&';
                 }
