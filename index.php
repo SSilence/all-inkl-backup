@@ -11,7 +11,7 @@ error_reporting(E_ALL);
 @ini_set("max_execution_time", 3600);
 @ini_set("memory_limit", "256M");
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/vendor.phar';
 require __DIR__ . '/config.php';
 
 use Aws\S3\S3Client;
